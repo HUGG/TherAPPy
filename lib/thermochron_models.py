@@ -83,3 +83,38 @@ def calculate_closure_age(time, temp, thermochron_parameters, verbose=False,
         Tc_int = yi * u.K
 
         return age
+    
+
+def model_AFT_age_and_lengths(temperature_history, AFT_parameters, AFT_model_parameters=None, model="Ketcham2007"):
+
+    available_models = ["Ketcham2007"]
+    available_kinetic_parameters = ["Clwt", "Dpar"]
+
+    try:
+        assert model in available_models
+    except AssertionError:
+        msg = f"error, {model} model for AFT is not supported, choose one of {available_models}"
+        raise AssertionError(msg)
+    
+    if model == "Ketcham2007":
+        import lib.AFT_model_lib as AFT_model_lib
+
+        time = temperature_history["time"]
+        time_Myr = time.value / 1e6
+        temperature = temperature_history["temperature"]
+        kinetic_parameter = AFT_parameters["kinetic_parameter"]
+
+        try:
+            assert kinetic_parameter in ["Clwt", "Dpar"]
+        except AssertionError:
+            msg = f"error, kinetic_parameter {kinetic_parameter} for AFT is not supported, choose one of {available_kinetic_parameters}"
+            raise AssertionError(msg)
+        
+        if kinetic_parameter == "Clwt":
+            kinetic_value = AFT_parameters["Clwt"]
+        elif kinetic_parameter == "Dpar":
+            kinetic_value = AFT_parameters["Dpar"]
+        
+        model_results = AFT_model_lib.simulate_AFT_annealing(time_Myr, temperature.value, kinetic_value)
+
+    return model_results

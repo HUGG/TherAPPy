@@ -42,13 +42,16 @@ class thermochron_object():
 
         """
 
-        available_models = ["Dodson"]
+        available_models = ["Dodson", "Ketcham2007"]
 
         if model is None:
             # take the model specified in the class
             model = self.model
 
-        assert model in available_models
+        try:
+            assert model in available_models
+        except AssertionError:
+            raise AssertionError(f"error, model {model} is not in the list of supported models, choose one of these instead: {available_models}")
 
         if thermochron_parameters is None:
             # take the default parameters
@@ -67,6 +70,8 @@ class thermochron_object():
         # model thermochron
         if model == "Dodson":
             self.modelled_thermochron_age = tm.calculate_closure_age(time, temp, thermochron_parameters)
+        elif self.system == "AFT":
+            self.model_results = tm.model_AFT_age_and_lengths(temperature_history, thermochron_parameters)
             
     def calculate_thermochron_age(self, thermochron_data):
 
