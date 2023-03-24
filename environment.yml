@@ -6,3 +6,4 @@ dependencies:
   - matplotlib
   - astropy
   - shapely
+  - scipy
