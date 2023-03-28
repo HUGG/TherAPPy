@@ -14,4 +14,6 @@ The code currently includes the following models:
 
 The code is under heavy development. Get in touch with us or create a pull request if you would like to contribute or have suggestions for changes.
 
+![fig/TherAPPy_example.png](fig/TherAPPy_example.png)
+
 
