@@ -21,20 +21,22 @@ class thermochron_object():
 
     """
 
-    def __init__(self, thermochron_system, thermochron_model=None, thermochron_data=None, thermochron_model_parameters=None, thermochron_age=None, temperature_history=None):
+    def __init__(self, mineral, thermochron_model=None, thermochron_data=None, thermochron_model_parameters=None, thermochron_age=None, temperature_history=None):
 
         # check if thermochron system is available
+        available_minerals = ["apatite", "zircon", "muscovite", "biotite", "hornblende"]
         try:
-            assert thermochron_system in ["AHe", "AFT", "ZHe", "ZFT"]
+            assert mineral in available_minerals
         except AssertionError:
-            raise AssertionError(f"error, the thermochron system {thermochron_system} that you tried to assign to this object is not implemented in the code")
+            raise AssertionError(f"error, the mineral {mineral} that you tried to assign to this object is not implemented in the code"
+                                 f", choose one of these isntead: {available_minerals}")
 
-        self.system = thermochron_system
+        self.mineral = mineral
         self.model = thermochron_model
         self.thermochron_data =  thermochron_data
 
 
-    def model_thermochron(self, temperature_history, model=None, thermochron_parameters=None):
+    def model_thermochron(self, temperature_history, thermochronometer, model=None, thermochron_parameters=None):
         
         """
         Forward model of thermochronological data (He concentration, fission track density, length distributions, etc..)
@@ -43,10 +45,16 @@ class thermochron_object():
         """
 
         available_models = ["Dodson", "Ketcham2007"]
-
+        available_thermochronometers = ["FT", "He", "Ar"]
         if model is None:
             # take the model specified in the class
             model = self.model
+        
+        try:
+            assert thermochronometer in available_thermochronometers
+        except AssertionError:
+            raise AssertionError(f"error, thermochronometer {thermochronometer} is not in the list of supported models, "
+                                 f"choose one of these instead: {available_thermochronometers}")
 
         try:
             assert model in available_models
@@ -55,24 +63,35 @@ class thermochron_object():
 
         if thermochron_parameters is None:
             # take the default parameters
-            thermochron_parameters = dtp.default_thermochron_params(self.system, model)
+            thermochron_parameters = dtp.default_thermochron_params(self.mineral, thermochronometer, model)
 
         assert thermochron_parameters is not None
 
         # store model and thermochron parameters in class
         # not sure if this is the best way to structure this..
         self.model = model
+        self.thermochronometer = thermochronometer
         self.thermochron_parameters = thermochron_parameters
 
         # get time and temperature
-        time, temp = temperature_history["time"], temperature_history["temperature"]
+        time_bp, temp = temperature_history["time"], temperature_history["temperature"]
+        time = time_bp.max() - time_bp
+
+        self.time_bp = time_bp
+        self.time = time
 
         # model thermochron
         if model == "Dodson":
-            self.modelled_thermochron_age = tm.calculate_closure_age(time, temp, thermochron_parameters)
-        elif self.system == "AFT":
-            self.model_results = tm.model_AFT_age_and_lengths(temperature_history, thermochron_parameters)
+            modelled_thermochron_age = tm.calculate_closure_age(time, temp, thermochron_parameters)
             
+            modelled_thermochron_age_bp = time.max() - modelled_thermochron_age 
+            model_results = {"modelled_thermochron_age_bp": modelled_thermochron_age_bp}
+
+        elif self.mineral == "apatite" and thermochronometer == "FT":
+            model_results = tm.model_AFT_age_and_lengths(time, temp, thermochron_parameters)
+
+        return model_results
+
     def calculate_thermochron_age(self, thermochron_data):
 
         """

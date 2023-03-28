@@ -85,7 +85,7 @@ def calculate_closure_age(time, temp, thermochron_parameters, verbose=False,
         return age
     
 
-def model_AFT_age_and_lengths(temperature_history, AFT_parameters, AFT_model_parameters=None, model="Ketcham2007"):
+def model_AFT_age_and_lengths(time, temperature, AFT_parameters, AFT_model_parameters=None, model="Ketcham2007"):
 
     available_models = ["Ketcham2007"]
     available_kinetic_parameters = ["Clwt", "Dpar"]
@@ -99,9 +99,7 @@ def model_AFT_age_and_lengths(temperature_history, AFT_parameters, AFT_model_par
     if model == "Ketcham2007":
         import lib.AFT_model_lib as AFT_model_lib
 
-        time = temperature_history["time"]
         time_Myr = time.value / 1e6
-        temperature = temperature_history["temperature"]
         kinetic_parameter = AFT_parameters["kinetic_parameter"]
 
         try:
