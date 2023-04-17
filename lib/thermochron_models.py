@@ -152,7 +152,7 @@ def model_AFT_age_and_lengths(time, temperature, AFT_parameters, AFT_model_param
     if model == "Ketcham2007":
         import lib.AFT_model_lib as AFT_model_lib
 
-        time_Myr = time.value / 1e6
+        #time_Myr = time.value / 1e6
         kinetic_parameter = AFT_parameters["kinetic_parameter"]
 
         try:
@@ -166,6 +166,6 @@ def model_AFT_age_and_lengths(time, temperature, AFT_parameters, AFT_model_param
         elif kinetic_parameter == "Dpar":
             kinetic_value = AFT_parameters["Dpar"]
         
-        model_results = AFT_model_lib.simulate_AFT_annealing(time_Myr, temperature.value, kinetic_value)
+        model_results = AFT_model_lib.simulate_AFT_annealing(time.value, temperature.value, kinetic_value)
 
     return model_results

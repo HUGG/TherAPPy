@@ -10,6 +10,7 @@ import itertools
 import numpy as np
 #from pylab import normpdf
 import scipy.stats
+import astropy.units as u
 
 # import fortran module 
 try:
@@ -437,7 +438,7 @@ def resample_time_temp_input(timesteps, temperature, max_temp_change=3.5):
     Parameters
     ----------
     timesteps
-        1D array containing time or duration of timesteps (My)
+        1D array containing time or duration of timesteps (yr)
     temperature
         1D array of temperature (degr. C)
     max_temp_change
@@ -471,15 +472,16 @@ def resample_time_temp_input(timesteps, temperature, max_temp_change=3.5):
         delta_T = temperature_new[1:] - temperature_new[:-1]
         
         counter += 1
-        if counter > 1000:
-            print('error in temperature resampling function')
-            print('changes in temperature too high')
-            pdb.set_trace()
+        try:
+            assert counter < 1000
+        except AssertionError:
+            msg = 'error in temperature resampling function, changes in temperature too high'
+            raise AssertionError(msg)
     
     return time_new, temperature_new
 
 
-def simulate_AFT_annealing(timesteps, temperature_input, kinetic_value,
+def simulate_AFT_annealing(timesteps_input, temperature_input, kinetic_value,
                            method='Ketcham2007',
                            apply_c_axis_correction=False,
                            kinetic_parameter='Clwt',
@@ -510,7 +512,7 @@ def simulate_AFT_annealing(timesteps, temperature_input, kinetic_value,
     Parameters
     ----------
     timesteps:
-        1D array of time steps  (My)
+        1D array of time steps  (yr)
     temperature_input:
         1D array of temperature (degr. C)
     kinetic_value:
@@ -595,9 +597,13 @@ def simulate_AFT_annealing(timesteps, temperature_input, kinetic_value,
         doi:10.2138/am.2007.2281.
     
     """
-
-    Myr = (1.0e6 * 365.0 * 24.0 * 3600.0)
+    yr = 365.0 * 24.0 * 3600.0
+    Myr = 1.0e6 * yr
     
+    # convert time from yr to Myr
+    # todo: change algorithm to use yr instead of Myr internally
+    timesteps = timesteps_input / 1e6
+
     ####################################################################
     if verbose is True:
         print('-' * 20)
@@ -830,8 +836,8 @@ def simulate_AFT_annealing(timesteps, temperature_input, kinetic_value,
             % (l_mean, l_mean_std, l_median))
     if np.isnan(l_mean) is True:
         print('warning, track length calculation failed')
-        if verbose is True:
-            pdb.set_trace()
+        # if verbose is True:
+        #     pdb.set_trace()
     
     ###################################################
     # calculate observation frequency:
@@ -864,6 +870,7 @@ def simulate_AFT_annealing(timesteps, temperature_input, kinetic_value,
     aft_age_corrected = aft_age_uncorrected / rho_s
 
     aft_age_myr = aft_age_corrected / Myr
+    aft_age_yr = aft_age_corrected / yr * u.year
 
     if verbose is True:
         print('AFT age = %0.2f My, avg rho = %0.3f, rho standard = %s' % (aft_age_myr, rho_age.mean(), rho_s))
@@ -873,7 +880,7 @@ def simulate_AFT_annealing(timesteps, temperature_input, kinetic_value,
         l_mean = 0
         l_mean_std = 0
 
-    model_results = {"AFT_age": aft_age_myr, "track_length_pdf": track_length_pdf, 
+    model_results = {"AFT_age": aft_age_yr, "track_length_pdf": track_length_pdf, 
                      "mean_length": l_mean, "length_stdev": l_mean_std, "rm": rm, "rc": rc, "rho_age": rho_age, "dt": dt}
     #return track_length_pdf, aft_age_myr, l_mean, l_mean_std, rm, rc, rho_age, dt
     return model_results
