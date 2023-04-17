@@ -864,23 +864,27 @@ def simulate_AFT_annealing(timesteps_input, temperature_input, kinetic_value,
         print('dt sum = %0.2f' % (dt.sum() / Myr))
 
     aft_age_uncorrected = 0
-    for i in range(nsteps):
-        aft_age_uncorrected += dt[i] * rho_age[i]
+    #for i in range(nsteps):
+    #    aft_age_uncorrected += dt[i] * rho_age[i]
+    dt_rho_prod = dt * rho_age
+    aft_ages_uncorrected = np.cumsum(dt_rho_prod)
+    aft_ages_corrected = aft_ages_uncorrected / rho_s
 
-    aft_age_corrected = aft_age_uncorrected / rho_s
+    aft_ages_myr = aft_ages_corrected / Myr
+    aft_ages_yr = aft_ages_corrected / yr * u.year
 
-    aft_age_myr = aft_age_corrected / Myr
-    aft_age_yr = aft_age_corrected / yr * u.year
+    aft_age_myr = aft_ages_myr[-1]
+    aft_age_yr = aft_ages_yr[-1]
 
     if verbose is True:
         print('AFT age = %0.2f My, avg rho = %0.3f, rho standard = %s' % (aft_age_myr, rho_age.mean(), rho_s))
 
-    if aft_age_corrected == 0:
+    if aft_ages_corrected[-1] == 0:
         track_length_pdf[:] = 0
         l_mean = 0
         l_mean_std = 0
 
-    model_results = {"AFT_age": aft_age_yr, "track_length_pdf": track_length_pdf, 
+    model_results = {"AFT_age": aft_age_yr, "AFT_ages": aft_ages_yr, "track_length_pdf": track_length_pdf, 
                      "mean_length": l_mean, "length_stdev": l_mean_std, "rm": rm, "rc": rc, "rho_age": rho_age, "dt": dt}
     #return track_length_pdf, aft_age_myr, l_mean, l_mean_std, rm, rc, rho_age, dt
     return model_results
