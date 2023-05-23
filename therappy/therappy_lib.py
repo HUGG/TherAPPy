@@ -6,8 +6,8 @@ import itertools
 import numpy as np
 import astropy.units as u
 
-import lib.thermochron_models as tm
-import lib.default_thermochron_model_parameters as dtp
+import therappy.thermochron_models as tm
+import therappy.default_thermochron_model_parameters as dtp
 
 
 class thermochron_object():
