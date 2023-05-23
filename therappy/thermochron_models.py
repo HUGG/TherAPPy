@@ -150,7 +150,7 @@ def model_AFT_age_and_lengths(time, temperature, AFT_parameters, AFT_model_param
         raise AssertionError(msg)
     
     if model == "Ketcham2007":
-        import lib.AFT_model_lib as AFT_model_lib
+        import therappy.AFT_model_lib as AFT_model_lib
 
         #time_Myr = time.value / 1e6
         kinetic_parameter = AFT_parameters["kinetic_parameter"]

@@ -14,7 +14,7 @@ import astropy.units as u
 
 # import fortran module 
 try:
-    import lib.AFT_model_core as AFT_model_core
+    import therappy.AFT_model_core as AFT_model_core
     print('import fortran annealing module ok')
 except ImportError as e:
     print('-' * 20)
