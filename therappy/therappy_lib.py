@@ -44,7 +44,7 @@ class thermochron_object():
 
         """
 
-        available_models = ["Dodson", "Ketcham2007"]
+        available_models = ["Dodson", "Ketcham2007", "Meesters2002"]
         available_thermochronometers = ["FT", "He", "Ar"]
         if model is None:
             # take the model specified in the class
@@ -89,6 +89,12 @@ class thermochron_object():
 
         elif self.mineral == "apatite" and thermochronometer == "FT":
             model_results = tm.model_AFT_age_and_lengths(time, temp, thermochron_parameters)
+
+        elif self.mineral == "apatite" and thermochronometer == "He":
+            model_results = tm.model_AHe_age(self, time, temp, thermochron_parameters)
+        
+        else:
+            raise ValueError("warning, no thermochron model executed, check input")
 
         return model_results
 

@@ -1,6 +1,7 @@
 import pdb
 import numpy as np
 import astropy.units as u
+from astropy.units import cds
 #from shapely.geometry import LineString
 
 
@@ -167,5 +168,105 @@ def model_AFT_age_and_lengths(time, temperature, AFT_parameters, AFT_model_param
             kinetic_value = AFT_parameters["Dpar"]
         
         model_results = AFT_model_lib.simulate_AFT_annealing(time.value, temperature.value, kinetic_value)
+
+    return model_results
+
+
+def model_AHe_age(mineral, t, T,
+                  D0_div_a2=np.exp(13.4),
+                  Ea=32.9 * 4184,
+                  R=8.3144621,
+                  decay_constant_238U=4.916e-18,
+                  decay_constant_232Th=1.57e-18,
+                  decay_constant_235U=3.12e-17,
+                  alpha_ejection=True,
+                  stopping_distance=20e-6,
+                  method='RDAAM',
+                  alpha=0.04672,
+                  C0=0.39528,
+                  C1=0.01073,
+                  C2=-65.12969,
+                  C3=-7.91715,
+                  use_fortran_algorithm=True,
+                  n_eigenmodes=15):
+
+    """
+    """
+
+    import therappy.AHe_models as AHe_models
+
+    radius_, U_, Th_ = mineral.radius, mineral.U, mineral.Th
+
+    temperature_K = T.to(u.K, equivalencies=u.temperature())
+
+    t_sec = t.to(u.s)
+
+    radius = radius_.to(u.m).value #* 1e-6
+    print(f"radius = {radius}")
+    
+    # convert U from ppm to kg/kg
+    U = U_.to(cds.ppm).value * 1e-6
+    Th = Th_.to(cds.ppm).value * 1e-6
+
+    print(f"U = {U}")
+    print(f"U = {Th}")
+
+    # calculate He production:
+    U238 = (137.88 / 138.88) * U
+    U235 = (1.0 / 138.88) * U
+    Th232 = Th
+    Ur0 = 8 * U238 * decay_constant_238U + 7 * U235 * decay_constant_235U \
+          + 6 * Th232 * decay_constant_232Th
+    decay_constant = Ur0 / (8*U238 + 7*U235 + 6*Th232)
+
+    if method is 'Farley2000':
+
+        #D0 = D0_div_a2 * radius ** 2
+        # values in HeFTy 1.8.3:
+        D0 = 50.0 / 1e4     # m2/sec
+        Ea = 32.9 * 4184.0  # J/mol
+        D_div_a2 = D0 / (radius**2) * np.exp(-Ea / (R*temperature_K.value))
+        D = D_div_a2 * radius**2
+        #print 'using Farley (2000) diffusion parameters'
+
+    elif method is 'RDAAM':
+        #print 'using RDAAM model to calculate helium diffusivity'
+        #print 'with U238=%0.3e, U235=%0.3e, Th232=%0.3e, radius=%0.3e' % \
+        #      (U238, U235, Th232, radius)
+        D = AHe_models.calculate_He_diffusivity_RDAAM(temperature_K.value, t_sec.value, U238, U235, Th232, radius,
+                                                      alpha=alpha, C0=C0, C1=C1,
+                                                      C2=C2, C3=C3,
+                                                      use_fortran_algorithm=use_fortran_algorithm)
+
+    elif method is 'Wolf1996':
+        # diffusivity params Wolf et al (1996), table 7, Durango
+        # tested, values are really given in log10 instead of ln
+        # big difference with D0 values in Flowers (2009), not sure why
+        #log_D0_div_a2 = 7.7 #(1/sec)
+        log_D0_div_a2 = 7.82 #(1/sec) , value given in HeFTy 1.8.3
+
+        D0_div_a2 = 10**log_D0_div_a2
+        #D0_div_a2 = np.exp(log_D0_div_a2)
+        Ea = 36.3 * 4184
+        D0 = D0_div_a2 * radius ** 2
+        D = (D0 / radius**2 * np.exp(-Ea / (R*temperature_K.value))) * radius**2
+
+    else:
+        msg = 'error, cannot determine method for calculating helium ' \
+              'diffusivity, choose "Wolf1996", "Farley2000", ' \
+              'or "RDAAM", current method = %s' % method
+        raise ValueError(msg)
+
+   
+    ahe_age = AHe_models.He_diffusion_Meesters_and_Dunai_2002(
+        t_sec.value, D, radius, Ur0,
+        decay_constant=decay_constant,
+        U_function='exponential',
+        n_eigenmodes=n_eigenmodes,
+        alpha_ejection=alpha_ejection)
+    
+    ahe_age_yr = (ahe_age * u.s).to(u.year)
+    model_results = {"modelled_AHe_age": ahe_age_yr[-1], "modelled_AHe_ages": ahe_age_yr,
+                     "He_diffusivity": D}
 
     return model_results
