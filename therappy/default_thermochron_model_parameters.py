@@ -113,6 +113,28 @@ def default_thermochron_params(mineral, thermochronometer, thermochron_model):
 
         thermochron_parameters = {"Ea": ea, "geom": geom, "omega": omega}
 
+    elif thermochron_model == "Meesters2002":
+
+        #D0_div_a2=np.exp(13.4),
+        #Ea=32.9 * 4184,
+        #R=8.3144621,
+        
+        alpha_ejection = True
+        stopping_distance = 20e-6
+        decay_constant_238U = 4.916e-18
+        decay_constant_232Th = 1.57e-18
+        decay_constant_235U = 3.12e-17
+        diffusivity_model = "RDAAM"
+        alpha = 0.04672
+        C0 = 0.39528
+        C1 = 0.01073
+        C2 = -65.12969
+        C3 = -7.91715
+
+        thermochron_parameters = {"diffusivity_model": diffusivity_model, "model_alpha_ejection": alpha_ejection, "stopping_distance": stopping_distance, 
+                                  "decay_constant_238U": decay_constant_238U, "decay_constant_232Th": decay_constant_232Th, "decay_constant_235U": decay_constant_235U,
+                                  "alpha": alpha, "C0": C0, "C1": C1, "C2": C2, "C3": C3}
+
     else:
         # dummy parameter set, default paramters for the thermochronometers not implemented yet
         thermochron_parameters = {"dummy_parameter": 0.0}

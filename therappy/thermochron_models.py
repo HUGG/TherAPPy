@@ -172,26 +172,28 @@ def model_AFT_age_and_lengths(time, temperature, AFT_parameters, AFT_model_param
     return model_results
 
 
-def model_AHe_age(mineral, t, T,
-                  D0_div_a2=np.exp(13.4),
-                  Ea=32.9 * 4184,
-                  R=8.3144621,
-                  decay_constant_238U=4.916e-18,
-                  decay_constant_232Th=1.57e-18,
-                  decay_constant_235U=3.12e-17,
-                  alpha_ejection=True,
-                  stopping_distance=20e-6,
-                  method='RDAAM',
-                  alpha=0.04672,
-                  C0=0.39528,
-                  C1=0.01073,
-                  C2=-65.12969,
-                  C3=-7.91715,
-                  use_fortran_algorithm=True,
-                  n_eigenmodes=15):
+def model_AHe_age(mineral, t, T, thermochron_parameters, use_fortran_algorithm=True, n_eigenmodes=15):
+                #   D0_div_a2=np.exp(13.4),
+                #   Ea=32.9 * 4184,
+                #   R=8.3144621,
+                #   decay_constant_238U=4.916e-18,
+                #   decay_constant_232Th=1.57e-18,
+                #   decay_constant_235U=3.12e-17,
+                #   alpha_ejection=True,
+                #   stopping_distance=20e-6,
+                #   method='RDAAM',
+                #   alpha=0.04672,
+                #   C0=0.39528,
+                #   C1=0.01073,
+                #   C2=-65.12969,
+                #   C3=-7.91715,
+                  
+                #   ):
 
     """
     """
+
+
 
     import therappy.AHe_models as AHe_models
 
@@ -212,12 +214,19 @@ def model_AHe_age(mineral, t, T,
     print(f"U = {Th}")
 
     # calculate He production:
+    decay_constant_238U = thermochron_parameters["decay_constant_238U"]
+    decay_constant_232Th = thermochron_parameters["decay_constant_232Th"]   
+    decay_constant_235U = thermochron_parameters["decay_constant_235U"]
+
+
     U238 = (137.88 / 138.88) * U
     U235 = (1.0 / 138.88) * U
     Th232 = Th
     Ur0 = 8 * U238 * decay_constant_238U + 7 * U235 * decay_constant_235U \
           + 6 * Th232 * decay_constant_232Th
     decay_constant = Ur0 / (8*U238 + 7*U235 + 6*Th232)
+
+    method = thermochron_parameters["diffusivity_model"]
 
     if method is 'Farley2000':
 
@@ -233,6 +242,10 @@ def model_AHe_age(mineral, t, T,
         #print 'using RDAAM model to calculate helium diffusivity'
         #print 'with U238=%0.3e, U235=%0.3e, Th232=%0.3e, radius=%0.3e' % \
         #      (U238, U235, Th232, radius)
+
+        alpha = thermochron_parameters["alpha"]
+        C0, C1, C2, C3 = thermochron_parameters["C0"], thermochron_parameters["C1"], thermochron_parameters["C2"], thermochron_parameters["C3"]
+
         D = AHe_models.calculate_He_diffusivity_RDAAM(temperature_K.value, t_sec.value, U238, U235, Th232, radius,
                                                       alpha=alpha, C0=C0, C1=C1,
                                                       C2=C2, C3=C3,
@@ -257,13 +270,16 @@ def model_AHe_age(mineral, t, T,
               'or "RDAAM", current method = %s' % method
         raise ValueError(msg)
 
-   
+    alpha_ejection = thermochron_parameters["model_alpha_ejection"]
+    stopping_distance = thermochron_parameters["stopping_distance"]
+
     ahe_age = AHe_models.He_diffusion_Meesters_and_Dunai_2002(
         t_sec.value, D, radius, Ur0,
         decay_constant=decay_constant,
         U_function='exponential',
         n_eigenmodes=n_eigenmodes,
-        alpha_ejection=alpha_ejection)
+        alpha_ejection=alpha_ejection,
+        stopping_distance=stopping_distance)
     
     ahe_age_yr = (ahe_age * u.s).to(u.year)
     model_results = {"modelled_thermochron_age": ahe_age_yr[-1], "modelled_thermochron_ages": ahe_age_yr,
