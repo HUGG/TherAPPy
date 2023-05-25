@@ -193,10 +193,16 @@ def model_AHe_age(mineral, t, T, thermochron_parameters, use_fortran_algorithm=T
     """
     """
 
-
-
     import therappy.AHe_models as AHe_models
 
+    method = thermochron_parameters["diffusivity_model"]
+    available_methods = ["Farley2000", "RDAAM", "Wolf1996"]
+    try:
+        assert method in available_methods
+    except AssertionError:
+        msg = f"the diffusivity model {method} is not implemented. Choose one of the following methods instead: {available_methods}"
+        raise AssertionError(msg)
+    
     radius_, U_, Th_ = mineral.radius, mineral.U, mineral.Th
 
     temperature_K = T.to(u.K, equivalencies=u.temperature())
@@ -218,15 +224,12 @@ def model_AHe_age(mineral, t, T, thermochron_parameters, use_fortran_algorithm=T
     decay_constant_232Th = thermochron_parameters["decay_constant_232Th"]   
     decay_constant_235U = thermochron_parameters["decay_constant_235U"]
 
-
     U238 = (137.88 / 138.88) * U
     U235 = (1.0 / 138.88) * U
     Th232 = Th
     Ur0 = 8 * U238 * decay_constant_238U + 7 * U235 * decay_constant_235U \
           + 6 * Th232 * decay_constant_232Th
     decay_constant = Ur0 / (8*U238 + 7*U235 + 6*Th232)
-
-    method = thermochron_parameters["diffusivity_model"]
 
     if method is 'Farley2000':
 
