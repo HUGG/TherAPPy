@@ -266,7 +266,7 @@ def model_AHe_age(mineral, t, T,
         alpha_ejection=alpha_ejection)
     
     ahe_age_yr = (ahe_age * u.s).to(u.year)
-    model_results = {"modelled_AHe_age": ahe_age_yr[-1], "modelled_AHe_ages": ahe_age_yr,
-                     "He_diffusivity": D}
+    model_results = {"modelled_thermochron_age": ahe_age_yr[-1], "modelled_thermochron_ages": ahe_age_yr,
+                     "He_diffusivity": D, "He_diffusion_model": "Meesters2002", "He_diffusivity_model": method}
 
     return model_results
