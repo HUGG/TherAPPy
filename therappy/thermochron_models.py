@@ -255,6 +255,7 @@ def model_AHe_age(mineral, t, T, thermochron_parameters, use_fortran_algorithm=T
         # diffusivity params Wolf et al (1996), table 7, Durango
         # tested, values are really given in log10 instead of ln
         # big difference with D0 values in Flowers (2009), not sure why
+        R=8.3144621
         #log_D0_div_a2 = 7.7 #(1/sec)
         log_D0_div_a2 = 7.82 #(1/sec) , value given in HeFTy 1.8.3
 
