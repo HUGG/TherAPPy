@@ -139,7 +139,7 @@ def calculate_closure_age(time, temp, thermochron_parameters, verbose=False,
         return age
     
 
-def model_AFT_age_and_lengths(time, temperature, AFT_parameters, AFT_model_parameters=None, model="Ketcham2007"):
+def model_AFT_age_and_lengths(time, temperature, model_parameters, model="Ketcham2007"):
 
     available_models = ["Ketcham2007"]
     available_kinetic_parameters = ["Clwt", "Dpar"]
@@ -153,21 +153,13 @@ def model_AFT_age_and_lengths(time, temperature, AFT_parameters, AFT_model_param
     if model == "Ketcham2007":
         import therappy.AFT_model_lib as AFT_model_lib
 
-        #time_Myr = time.value / 1e6
-        kinetic_parameter = AFT_parameters["kinetic_parameter"]
-
-        try:
-            assert kinetic_parameter in ["Clwt", "Dpar"]
-        except AssertionError:
-            msg = f"error, kinetic_parameter {kinetic_parameter} for AFT is not supported, choose one of {available_kinetic_parameters}"
-            raise AssertionError(msg)
+        # take kinetic value (Clwt, Dpar or rmr0) out of dictionary to make it a separate argument for the AFT model
+        kinetic_par = model_parameters["kinetic_parameter"]
+        kinetic_value = model_parameters[kinetic_par]
+        final_model_parameters = model_parameters.copy()
+        del final_model_parameters[kinetic_par]
         
-        if kinetic_parameter == "Clwt":
-            kinetic_value = AFT_parameters["Clwt"]
-        elif kinetic_parameter == "Dpar":
-            kinetic_value = AFT_parameters["Dpar"]
-        
-        model_results = AFT_model_lib.simulate_AFT_annealing(time.value, temperature.value, kinetic_value)
+        model_results = AFT_model_lib.simulate_AFT_annealing(time.value, temperature.value, kinetic_value,  **final_model_parameters)
 
     return model_results
 

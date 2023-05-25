@@ -134,6 +134,30 @@ def default_thermochron_params(mineral, thermochronometer, thermochron_model):
         thermochron_parameters = {"diffusivity_model": diffusivity_model, "model_alpha_ejection": alpha_ejection, "stopping_distance": stopping_distance, 
                                   "decay_constant_238U": decay_constant_238U, "decay_constant_232Th": decay_constant_232Th, "decay_constant_235U": decay_constant_235U,
                                   "alpha": alpha, "C0": C0, "C1": C1, "C2": C2, "C3": C3}
+    elif thermochron_model == "Ketcham2007":
+
+               #D0_div_a2=np.exp(13.4),
+        #Ea=32.9 * 4184,
+        #R=8.3144621,
+        
+        
+
+        thermochron_parameters = {"method": 'Ketcham2007', 
+                                  "apply_c_axis_correction": False,
+                                  "kinetic_parameter": 'Clwt',
+                                  "initial_track_length": -99999,
+                                  "binsize": 0.25,
+                                  "rmr0_min": 0,
+                                  "rmr0_max": 0.85,
+                                  "kappa": None,
+                                  "min_length": 2.18,
+                                  "surpress_resampling": False,
+                                  "annealing_eq": 'FC',
+                                  "alpha": 0.04672,
+                                  "C0": 0.39528,
+                                  "C1": 0.01073,
+                                  "C2": -65.12969,
+                                  "C3": -7.91715}
 
     else:
         # dummy parameter set, default paramters for the thermochronometers not implemented yet

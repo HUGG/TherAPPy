@@ -61,11 +61,22 @@ class thermochron_object():
         except AssertionError:
             raise AssertionError(f"error, model {model} is not in the list of supported models, choose one of these instead: {available_models}")
 
-        if thermochron_parameters is None:
-            # take the default parameters
-            thermochron_parameters = dtp.default_thermochron_params(self.mineral, thermochronometer, model)
+        # take the default parameters
+        default_thermochron_parameters = dtp.default_thermochron_params(self.mineral, thermochronometer, model)
 
-        assert thermochron_parameters is not None
+        final_thermochron_parameters = default_thermochron_parameters.copy()
+
+        # overwrite default parameters if specified
+        if thermochron_parameters is not None:
+            for k in thermochron_parameters.keys():
+                try:
+                    assert k in final_thermochron_parameters.keys()
+                except:
+                    msg = f"parameter {k} is not in the default thermochron parameter set"
+                # update parameter:
+                final_thermochron_parameters[k] = thermochron_parameters[k]
+
+        assert final_thermochron_parameters is not None
 
         # store model and thermochron parameters in class
         # not sure if this is the best way to structure this..
@@ -82,16 +93,16 @@ class thermochron_object():
 
         # model thermochron
         if model == "Dodson":
-            modelled_thermochron_age = tm.calculate_closure_age(time, temp, thermochron_parameters)
+            modelled_thermochron_age = tm.calculate_closure_age(time, temp, final_thermochron_parameters)
             
             modelled_thermochron_age_bp = time.max() - modelled_thermochron_age 
             model_results = {"modelled_thermochron_age_bp": modelled_thermochron_age_bp}
 
         elif self.mineral == "apatite" and thermochronometer == "FT":
-            model_results = tm.model_AFT_age_and_lengths(time, temp, thermochron_parameters)
+            model_results = tm.model_AFT_age_and_lengths(time, temp, final_thermochron_parameters)
 
         elif self.mineral == "apatite" and thermochronometer == "He":
-            model_results = tm.model_AHe_age(self, time, temp, thermochron_parameters)
+            model_results = tm.model_AHe_age(self, time, temp, final_thermochron_parameters)
         
         else:
             raise ValueError("warning, no thermochron model executed, check input")
