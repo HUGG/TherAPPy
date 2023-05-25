@@ -884,8 +884,8 @@ def simulate_AFT_annealing(timesteps_input, temperature_input, kinetic_value,
         l_mean = 0
         l_mean_std = 0
 
-    model_results = {"AFT_age": aft_age_yr, "AFT_ages": aft_ages_yr, "track_length_pdf": track_length_pdf, 
-                     "mean_length": l_mean, "length_stdev": l_mean_std, "rm": rm, "rc": rc, "rho_age": rho_age, "dt": dt}
+    model_results = {"modelled_thermochron_age": aft_age_yr, "modelled_thermochron_ages": aft_ages_yr, "fission_track_length_pdf": track_length_pdf, 
+                     "mean_fission_track_length": l_mean, "fission_track_length_stdev": l_mean_std, "rm": rm, "rc": rc, "rho_age": rho_age, "dt": dt, "rmr0": rmr0}
     #return track_length_pdf, aft_age_myr, l_mean, l_mean_std, rm, rc, rho_age, dt
     return model_results
 
