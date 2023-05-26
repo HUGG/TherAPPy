@@ -3,6 +3,7 @@ import numpy as np
 import astropy.units as u
 from astropy.units import cds
 #from shapely.geometry import LineString
+from astropy.units import imperial
 
 
 def calculate_closure_temp(time, temp_K, ea, omega, geom,
@@ -280,5 +281,125 @@ def model_AHe_age(mineral, t, T, thermochron_parameters, use_fortran_algorithm=T
     ahe_age_yr = (ahe_age * u.s).to(u.year)
     model_results = {"modelled_thermochron_age": ahe_age_yr[-1], "modelled_thermochron_ages": ahe_age_yr,
                      "He_diffusivity": D, "He_diffusion_model": "Meesters2002", "He_diffusivity_model": method}
+
+    return model_results
+
+
+def model_vitrinite_reflectance(times_forward, temperatures_in, method='easyRo', default_vr_method="easyRo"):
+    
+    """
+    calculate vitrinite reflectance using the easy%Ro algorithm of 
+    Burnham & Sweeney (1989) or the basin%Ro model by Nielsen et al. (2015)
+    
+    this function has been verified by reproducing the %Ro values 
+    provided in Figure 8 of Sweeney & Burnham (1990)
+    
+    References:
+    Burnham, A. K., & Sweeney, J. J. (1989). A chemical kinetic model of vitrinite maturation and reflectance. Geochimica et Cosmochimica Acta, 53(10), 2649–2657.
+    Nielsen, S. B., Clausen, O. R., & McGregor, E. (2015). basin%Ro: A vitrinite reflectance model derived from basin and laboratory data. Basin Research, 29, 515–536. https://doi.org/10.1111/bre.12160
+
+    Parameters:
+    -----------
+    times_bp : array
+        time in years bp. The last item should be 0 years bp
+    temperatures : array
+       temperature at each timestep, in degrees C
+    vr_method : string      
+        VR method, choose either 'easyRo' or 'basinRo'. default is 'easyRo'
+        
+    Returns:
+    --------
+    Ro : array           
+        calculated %Ro values at each timestep
+    """
+
+    vr_methods = ["easyRo", "basinRo"]
+
+
+    if method == None:
+        method = default_vr_method
+
+    try:
+        assert method in vr_methods
+    except AssertionError:
+        msg = f"error, vr_method {method} not recognized. Choose one of these instead: {vr_methods}"
+        raise AssertionError(msg)
+
+    #Myr = 1e6 * 365.25 * 24 * 60 * 60
+    Myr = (1e6 * u.year).to(u.s)
+    
+    timesteps = len(times_forward)
+
+    # convert T to Kelvin
+    temperatures_K = temperatures_in.to(u.K, equivalencies=u.temperature())
+
+    # fixed parameters:
+    if method is 'easyRo':
+        weights = np.array([0.03, 0.03, 0.04, 0.04, 0.05, 0.05, 0.06,
+                            0.04, 0.04, 0.07, 0.06, 0.06, 0.06, 0.05,
+                            0.05, 0.04, 0.03, 0.02, 0.02, 0.01 ])
+    elif method is 'basinRo':
+        weights = np.array([0.0185,	0.0143,	0.0569,	0.0478,	0.0497,	0.0344,	0.0344,
+                            0.0322,	0.0282,	0.0062,	0.1155,	0.1041,	0.1023,	0.076,
+                            0.0593,	0.0512,	0.0477,	0.0086,	0.0246,	0.0096])
+
+    # activation energy (cal/mol)
+    activationEnergy = np.array([34., 36., 38., 40., 42., 44., 46., 48., 50.,
+                                 52., 54., 56., 58., 60., 62., 64., 66., 68.,
+                                 70., 72. ]) * 1000.0 * imperial.cal / u.mol
+    
+    components = len(activationEnergy)
+    
+    # preexponential factor (s^-1)
+    if method is 'easyRo':
+        preExp = 1.0e13 / u.s
+    elif method is 'basinRo':
+        preExp = np.exp(60.9856) / Myr
+    
+    # universal gas constant (cal K-1 mol-1)  
+    R = 1.987 * imperial.cal / (u.K * u.mol)
+    
+    # rearrange time & activation energy arrays
+    T_all_components = np.resize(temperatures_K.value,(components, timesteps)) * u.K
+    activationEnergies_all_timesteps = np.resize(activationEnergy,(timesteps, components)).T
+    
+    # ERT
+    EdivRT = activationEnergies_all_timesteps / (R*temperatures_K)
+    
+    # I
+    I = preExp * T_all_components * np.exp(-EdivRT) * (1-(EdivRT**2+2.334733*EdivRT+0.250621) / 
+                                        (EdivRT**2+3.330657*EdivRT+1.681534) )
+    
+    # calculate heating rates (K / sec)
+    heatingRates = np.diff(temperatures_K) / np.diff(times_forward.to(u.s))
+    
+    # zero heating rate at first timestep
+    heatingRates = np.insert(heatingRates, [0], 0)
+    
+    # remove zero heating rates
+    heatingRates[heatingRates.value==0] = 1.0e-30 * u.K / u.s
+    
+    # delta I
+    deltaI = np.zeros(I.shape)
+    for j in range(1, timesteps, 1):
+        deltaI[:, j] = deltaI[:, j-1] + (I[:, j]-I[:, j-1]) / heatingRates[j]
+    
+    #cumulativeReacted
+    cumulativeReacted = weights * (1.0 - np.exp(-deltaI.T))
+    for k in range(components):
+        cumulativeReacted[deltaI[k, :] > 220.0, k] = weights[k]
+    cumulativeReacted[deltaI.T < 1.0e-20] = 0
+    
+    #sumReacted
+    sumReacted = cumulativeReacted.sum(axis=1)
+    
+    # calculate Ro at each timestep
+    if method is 'easyRo':
+        Ro = np.exp(-1.6 + 3.7 * sumReacted)
+    elif method is 'basinRo':
+        Rzero = 0.2104
+        Ro = Rzero * np.exp(3.7 * sumReacted)
+    
+    model_results = {"modelled_Ro": Ro[-1], "modelled_Ro_all_timesteps": Ro, "vr_method": method}
 
     return model_results

@@ -24,7 +24,7 @@ class thermochron_object():
     def __init__(self, mineral, thermochron_model=None, thermochron_data=None, thermochron_model_parameters=None, thermochron_age=None, temperature_history=None):
 
         # check if thermochron system is available
-        available_minerals = ["apatite", "zircon", "muscovite", "biotite", "hornblende"]
+        available_minerals = ["apatite", "zircon", "muscovite", "biotite", "hornblende", "vitrinite"]
         try:
             assert mineral in available_minerals
         except AssertionError:
@@ -44,8 +44,8 @@ class thermochron_object():
 
         """
 
-        available_models = ["Dodson", "Ketcham2007", "Meesters2002"]
-        available_thermochronometers = ["FT", "He", "Ar"]
+        available_models = ["Dodson", "Ketcham2007", "Meesters2002", "easyRo", "basinRo"]
+        available_thermochronometers = ["FT", "He", "Ar", "reflectance"]
         if model is None:
             # take the model specified in the class
             model = self.model
@@ -104,6 +104,8 @@ class thermochron_object():
         elif self.mineral == "apatite" and thermochronometer == "He":
             model_results = tm.model_AHe_age(self, time, temp, final_thermochron_parameters)
         
+        elif self.mineral == "vitrinite" and thermochronometer == "reflectance":
+            model_results = tm.model_vitrinite_reflectance(time, temp, method=model)
         else:
             raise ValueError("warning, no thermochron model executed, check input")
 

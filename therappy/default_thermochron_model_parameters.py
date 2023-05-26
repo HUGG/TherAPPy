@@ -11,7 +11,7 @@ def default_thermochron_params(mineral, thermochronometer, thermochron_model):
     
     """
     
-    assert thermochron_model in ["Dodson", "Ketcham2007", "Meesters2002"]
+    assert thermochron_model in ["Dodson", "Ketcham2007", "Meesters2002", "easyRo", "basinRo"]
 
     if thermochron_model == "Dodson":
         # default grain size for calculating omega for the MAr thermochronometer
